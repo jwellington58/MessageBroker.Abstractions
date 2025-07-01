@@ -27,7 +27,7 @@ namespace MessageBroker.Abstractions
             => GetSender<T>().SendMessageAsync(new ServiceBusMessage(JsonConvert.SerializeObject(message)));
 
         public Task Publish<T>(T message, string queueName)
-            => CreateSender(queueName).Value.SendMessageAsync(new ServiceBusMessage(JsonConvert.SerializeObject(message)));
+            => GetSender(queueName).SendMessageAsync(new ServiceBusMessage(JsonConvert.SerializeObject(message)));
 
         public Task PublishSchedule<T>(T message, DateTime scheduledEnqueueTime)
           where T : class
@@ -75,6 +75,16 @@ namespace MessageBroker.Abstractions
         private ServiceBusSender GetSender<T>()
             => _senders[_options[typeof(T).Name]].Value;
 
+        private ServiceBusSender GetSender(string queueName)
+        {
+            var sender = _senders[_options[queueName]].Value;
+            if (sender is null)
+                sender = AddSender(queueName).Value;
+
+            return sender;
+
+        }
+
         private ServiceBusProcessor GetProcessor<T>()
             => _processors[_options[typeof(T).Name]].Value;
 
@@ -101,8 +111,15 @@ namespace MessageBroker.Abstractions
             return dict;
         }
 
+        private Lazy<ServiceBusSender> AddSender(string queueName)
+        {
+            var sender = CreateSender(queueName);
+            _senders.Add(queueName, sender);
+            return sender;
+        }
+
         private Lazy<ServiceBusSender> CreateSender(string queueName)
-            => new Lazy<ServiceBusSender>(() => _client.CreateSender(queueName));
+            => new(() => _client.CreateSender(queueName));
     }
 
 }
