@@ -1,0 +1,56 @@
+name: Publish NuGet Package
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-conditional-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build project
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Extract Package Version
+        id: get_version
+        run: |
+          VERSION=$(xmllint --xpath "string(//Project/PropertyGroup/Version)" MessageBroker.Abstractions/MessageBroker.Abstractions.csproj)
+          echo "Package version is: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if package version exists on NuGet
+        id: check_nuget
+        run: |
+          PACKAGE_ID="MessageBroker.Abstractions"
+          VERSION="${{ steps.get_version.outputs.version }}"
+          echo "Checking NuGet for $PACKAGE_ID version $VERSION..."
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://api.nuget.org/v3-flatcontainer/${PACKAGE_ID,,}/$VERSION/${PACKAGE_ID,,}.$VERSION.nupkg)
+          
+          if [ "$STATUS_CODE" -eq 200 ]; then
+            echo "Package version already exists on NuGet. Skipping publish."
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Package version not found. Proceeding with publish."
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Pack project
+        if: steps.check_nuget.outputs.exists == 'false'
+        run: dotnet pack MessageBroker.Abstractions/MessageBroker.Abstractions.csproj --configuration Release --no-build --output ./nupkgs
+
+      - name: Publish to NuGet
+        if: steps.check_nuget.outputs.exists == 'false'
+        run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
