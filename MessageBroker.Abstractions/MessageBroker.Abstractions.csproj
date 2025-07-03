@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>Jwellington.MessageBroker.Abstractions</PackageId>
-    <Version>1.0.0-preview-1</Version>
+    <Version>1.0.3</Version>
     <Authors>Wellington Pereira</Authors>
     <Company>Jwellington</Company>
     <RepositoryUrl>https://github.com/jwellington58/MessageBroker.Abstractions</RepositoryUrl>

@@ -4,7 +4,7 @@ namespace MessageBroker.Abstractions
 {
     public static class ConfigMessageBrokerExtensions
     {
-        private static void AddBroker(this IServiceCollection services, Action<MessageBrokerOptions> configureOptions)
+        public static void AddBroker(this IServiceCollection services, Action<MessageBrokerOptions> configureOptions)
         {
             services.Configure(configureOptions);
             services.AddSingleton<IMessageBroker, AzureMessageBroker>();
