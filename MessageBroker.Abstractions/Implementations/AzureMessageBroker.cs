@@ -76,14 +76,8 @@ namespace MessageBroker.Abstractions
             => _senders[_options[typeof(T).Name]].Value;
 
         private ServiceBusSender GetSender(string queueName)
-        {
-            var sender = _senders[_options[queueName]].Value;
-            if (sender is null)
-                sender = AddSender(queueName).Value;
+            => _senders.TryGetValue(queueName, out Lazy<ServiceBusSender> lazySender) ? lazySender.Value : AddSender(queueName).Value;
 
-            return sender;
-
-        }
 
         private ServiceBusProcessor GetProcessor<T>()
             => _processors[_options[typeof(T).Name]].Value;
